@@ -2,71 +2,87 @@ package rocket.server;
 
 import rocket.lib.References;
 import rocket.src.DataReader;
+import rocket.src.DataWriter;
 import rocket.src.Player;
 import rocket.src.network.IPacketHandler;
 import rocket.src.network.Packet;
 
 public class ServerPacketHandler implements IPacketHandler {
 
+	private Server server;
+	public ServerPacketHandler(Server server) {
+		this.server = server;
+	}
+	
 	@Override
 	public void packetIncoming(Packet packet) {
-		if(packet.channel.equals(References.CHANNEL_PLAYER_UPDATE)){
-			this.updatePlayer(packet);
-		}else if(packet.channel.equals(References.CHANNEL_PLAYER_DC)){
+		if(packet.channel.equals(References.CHANNEL_PLAYER_DC)){
 			this.playerDC(packet);
-		}else if(packet.channel.equals(References.CHANNEL_SPAWNPLAYER)){
+		}else if(packet.channel.equals(References.CHANNEL_JOIN)){
+			this.join(packet);
+		}else if(packet.channel.equals(References.CHANNEL_STARTGAME)) {
+			this.startGame(packet);
+		}else if(packet.channel.equals(References.CHANNEL_SPAWNPLAYER)) {
 			this.spawnPlayer(packet);
-		}else if(packet.channel.equals(References.CHANNEL_OPENGUI)){
-			this.openGui(packet);
+		}else if(packet.channel.equals(References.CHANNEL_PLAYER_UPDATE)) {
+			this.updatePlayer(packet);
+		}else {
+			Server.sendDataToAll(packet);
 		}
 	}
-
-	private void updatePlayer(Packet packet) {
-		Packet packetOut = packet.copy();
-		DataReader data = new DataReader(packet.data);
-		String name = data.getString();
-		int posX = data.getInt();
-		int posY = data.getInt();
-		int health = data.getInt();
-		data.done();
+	
+	public void updatePlayer(Packet packet) {
+		/*DataReader dataread = new DataReader(packet.data);
+		String name = dataread.getString();
+		int posX = dataread.getInt();
+		int posY = dataread.getInt();
+		int health = dataread.getInt();
+		Player player = (Player) server.world.serverWorld.entitysInWorld.get(Server.isPlayerAdded(name));
+		player.posX = posX;
+		player.posY = posY;
+		player.health = health;*/
+		Server.sendDataToAll(packet);
+	}
+	
+	private void startGame(Packet packet) {
+		server.startWorld();
+		Server.sendDataToAll(packet);
+	}
+	
+	private void join(Packet packet) {
+		DataReader dataread = new DataReader(packet.data);
+		String name = dataread.getString();
+		Server.connectedPlayers.add(name);
 		int playerId = Server.isPlayerAdded(name);
-		if(playerId != -1){
-			Player player = Server.updater[playerId].player;
-			player.posX = posX;
-			player.posY = posY;
-			player.health = health;
+		for(int i = 0; i < Server.connectedPlayers.size(); i++) {
+			if(i != playerId) {
+				DataWriter datawrite = new DataWriter();
+				datawrite.addString(Server.connectedPlayers.get(i));
+				Server.sendPacket(playerId, datawrite.finalizePacket(References.CHANNEL_JOIN));
+			}
 		}
-		Server.sendDataToAll(packetOut);
+		Server.sendDataToAll(packet);
+		
 	}
-
+	
 	private void spawnPlayer(Packet packet) {
-		Packet packetOut = packet.copy();
-		DataReader data = new DataReader(packet.data);
-		String name = data.getString();
-		int posX = data.getInt();
-		int posY = data.getInt();
-		int health = data.getInt();
-		data.done();
-		int playerId = Server.isPlayerAdded(name);
-		if(playerId != -1){
-			Player player = new Player(posX, posY, health, name);
-			Server.serverInstance.serverWorld.spawnEntity(player);
-		}
-		Server.sendDataToAll(packetOut);
+		DataReader dataread = new DataReader(packet.data);
+		String username = dataread.getString();
+		int posX = dataread.getInt();
+		int posY = dataread.getInt();
+		int health = dataread.getInt();
+		Player player = new Player(posX, posY, health, username);
+		server.world.serverWorld.spawnEntity(player);
+		Server.sendDataToAll(packet);
 	}
 
 	@SuppressWarnings("deprecation")
 	private void playerDC(Packet packet){
 		DataReader data = new DataReader(packet.data);
 		String username = data.getString();
-		data.done();
 		int user = Server.isPlayerAdded(username);
 		Server.updater[user].stop();
 		Server.updater[user] = null;
 		Server.sendDataToAll(packet);
-	}
-	
-	private void openGui(Packet packet) {
-		Server.sendDataToAll(packet.copy());
 	}
 }

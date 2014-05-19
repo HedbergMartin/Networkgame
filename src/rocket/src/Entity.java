@@ -1,5 +1,6 @@
 package rocket.src;
 
+import java.awt.Color;
 import java.awt.Graphics;
 
 public class Entity {

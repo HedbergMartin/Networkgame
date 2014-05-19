@@ -25,10 +25,7 @@ public class GuiLobby extends Gui {
 		if(host){
 			compList.add(1, Start);
 			compList.add(2, Kick);
-			Rocket.getRocket().serverRunning = true;
-			Thread serverThread = new Thread(new Server());
-			serverThread.setDaemon(true);
-			serverThread.start();
+			Server.startServer();
 		}
 		try {
 			Rocket.getRocket().network.connect();
@@ -50,26 +47,6 @@ public class GuiLobby extends Gui {
 		}else{
 			
 		}
-		/*if(Rocket.getRocket().player.buttom[0]){
-			Rocket.getRocket().connectedPlayers.add(1);
-			//compList.add(compList.toArray().length, new Button("/Gui.png", 0, 32, 16, 4, "Player "+Rocket.getRocket().connectedPlayers.toArray().length, 20, 36, -10+(24*compList.toArray().length), 328, 20).setCheckBox());
-		}
-		if(compList.size() < Rocket.getRocket().connectedPlayers.size()){
-			compList.clear();
-		}
-		Iterator iter = compList.iterator();
-		while(iter.hasNext()){
-			//if(compList.size() < Rocket.getRocket().connectedPlayers.size()){
-				compList.add(compList.size(), new Button("/Gui.png", 0, 32, 16, 4, "Player "+Rocket.getRocket().connectedPlayers.toArray().length, 20, 36, -10+(24*compList.toArray().length), 328, 20).setCheckBox());
-			
-		}
-		/*for(int i = 0; i < Rocket.getRocket().connectedPlayers.toArray().length; i++){
-			if(compList.get(i+3) == null){
-				compList.add(compList.get(i+4));
-				((Button) compList.get(i+3)).setPosY(((Button) compList.get(i+3)).getPosY()-20);
-				compList.remove(i+4);
-			}
-		}*/
 		for(int i = 3; i < compList.toArray().length; i++){
 			if(focusedButton != i){
 				((Button) compList.get(i)).click(false);
@@ -80,7 +57,6 @@ public class GuiLobby extends Gui {
 	
 	@Override
 	public void drawGui(Graphics g) {
-		//g.drawImage(background, 0, 0, null);
 		g.setColor(Color.BLACK);
 		g.fillRect(0, 0, 400, 700);
 		g.setColor(Color.WHITE);
@@ -94,33 +70,25 @@ public class GuiLobby extends Gui {
 		g.drawString("Lobby", 26, 40);
 		g.setFont(new Font("Cambria", 40, 20));
 		for(int i = 0; i < NetworkHandler.connectedPlayers.size(); i++){
-			g.drawString(NetworkHandler.connectedPlayers.get(i).name, 55, 70+(i*20));
+			g.drawString(NetworkHandler.connectedPlayers.get(i), 55, 70+(i*20));
 		}
 	}
 	
 	@Override
 	public void preform(int source) {
 		switch(source) {
-		case(0): 
-			Rocket.getRocket().network.disconnect();
-			if(host){Rocket.getRocket().serverRunning = false; 
-				try {
-					Server.server.close();
-				} catch (IOException e) {
-					e.printStackTrace();
+			case(0): //Disconnecting
+				if(host) {
+					try {
+						Server.server.close();
+					} catch (IOException e) {
+						e.printStackTrace();
+					}
 				}
-			}
-			closeGui(this); break;
-		case(1): Rocket.getRocket().network.sendStartGame(); break;
-		case(2): 
-			/*if(this.focusedButton != -1){
-				Rocket.getRocket().network.connectedPlayers.remove(this.focusedButton-3);
-				compList.remove(this.focusedButton);
-			}*/
-			break;
-		}
-		if(source > 2){
-			this.focusedButton = source;
+				closeGui(this); break;
+			case(1): Rocket.getRocket().network.manager.sendStartgame();
+				break;
+			case(2): break;
 		}
 	}
 }

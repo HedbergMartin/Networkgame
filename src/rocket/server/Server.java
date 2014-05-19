@@ -7,8 +7,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.LinkedBlockingQueue;
 
-import rocket.main.Rocket;
-import rocket.src.World;
 import rocket.src.network.IPacketHandler;
 import rocket.src.network.Packet;
 
@@ -19,12 +17,30 @@ public class Server implements Runnable {
 	static ServerUpdateThread[] updater = new ServerUpdateThread[4];
 	public static List<IPacketHandler> packetHandels = new ArrayList<IPacketHandler>();
     public LinkedBlockingQueue<Packet> dataQue;
+	public static ArrayList<String> connectedPlayers = new ArrayList<String>();
 	
+	public ServerWorld world;
+	
+	public void startWorld() {
+		world = new ServerWorld();
+		Thread thread = new Thread(world);
+		thread.setDaemon(true);
+		thread.start();
+	}
+
+	/** Static method to start the server **/
+    public static void startServer() {
+		Thread serverThread = new Thread(new Server());
+		serverThread.setDaemon(true);
+		serverThread.start();
+    }
+
+	/** Server connection thread **/
 	public void initServer() throws IOException{
 		System.out.println("Server started");
-		Server.packetHandels.add(new ServerPacketHandler());
+		Server.packetHandels.add(new ServerPacketHandler(this));
 		server = new ServerSocket(7777);
-		while(Rocket.getRocket().serverRunning) {
+		while(true) {
 			socket = server.accept();
 			if(server.isClosed()) {
 				break;
@@ -40,30 +56,8 @@ public class Server implements Runnable {
 			}
 		}
 	}
-	
-	public World serverWorld;
-	public static Server serverInstance;
-	
-	public void serverGameUpdate() {
-		serverInstance = this;
-		this.serverWorld = new World(Rocket.getRocket().getWidth(), Rocket.getRocket().getHeight(), false);
-		Thread serverGame = new Thread() {
-            public void run(){
-                while(true){
-                	serverWorld.onWorldUpdate();
-        			try {
-        				Thread.sleep(17);
-        			} catch (InterruptedException e) {
-        				e.printStackTrace();
-        			}
-                }
-            }
-        };
 
-        serverGame.setDaemon(true);
-        serverGame.start();
-	}
-	
+	/** Data thread that pack up data **/
 	public void dataDeque(){
         dataQue = new LinkedBlockingQueue<Packet>();
 		Thread dataHandling = new Thread() {
@@ -84,23 +78,21 @@ public class Server implements Runnable {
         dataHandling.setDaemon(true);
         dataHandling.start();
 	}
-	
-	public static int isPlayerAdded(String player) {
-		for(int i = 0; i < updater.length; i++) {
-			if(updater[i] != null && updater[i].player != null){
-				if(updater[i].player.name.equals(player)) {
-					return i;
-				}
+
+	/** Check if a player is added, if not returning -1 **/
+	public static int isPlayerAdded(String player){
+		for(int i = 0; i < connectedPlayers.size(); i++){
+			if(connectedPlayers.get(i).equals(player)){
+				return i;
 			}
 		}
 		return -1;
 	}
 
-	@Override
+	/** Server run thread **/
 	public void run() {
 		try {
 			dataDeque();
-			serverGameUpdate();
 			initServer();
 		} catch (IOException e) {
 			System.out.println("Server is shutting down");
@@ -113,6 +105,7 @@ public class Server implements Runnable {
 		}
 	}
 
+	/** Sending a packet to all players **/
 	public static void sendDataToAll(Packet packet) {
 		for(int k = 0; k < updater.length; k++) {
 			if(updater[k] != null){
@@ -121,6 +114,7 @@ public class Server implements Runnable {
 		}
 	}
 	
+	/** Sending a packet to a specific player **/
 	public static void sendPacket(int player, Packet packet) {
 		try {
 			Packet.writeString(updater[player].out, packet.channel);

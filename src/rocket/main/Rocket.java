@@ -23,7 +23,7 @@ public class Rocket extends Applet implements Runnable {
 	private static final long serialVersionUID = -5003998791936586835L;
 	public PlayerHost player;
 	private static Rocket rocket;
-	public boolean isRunning, serverRunning;
+	public boolean isRunning;
 	public Gui currentGui;
 	public ArrayList<Gui> GuiMemory = new ArrayList<Gui>();
 	public NetworkHandler network;
@@ -45,17 +45,15 @@ public class Rocket extends Applet implements Runnable {
 		this.setSize(400, 600);
 		this.addKeyListener(new KeyBoardHandler(this));
 		this.addMouseListener(new MouseHandler());
-		this.theWorld = new World(this.getWidth(), this.getHeight(), true);
 		GameRegister.registerGuiHandel(new GuiHandler());
 		GuiMenu game = new GuiMenu();
 		GuiMemory.add(0, game);
 		currentGui = (Gui) GuiMemory.get(GuiMemory.toArray().length-1);
-		player = new PlayerHost(195, 660, 20, String.valueOf(random.nextInt(3000)));
-		NetworkHandler.packetHandels.add(new PacketHandler());
+		player = new PlayerHost(195, 560, 20, String.valueOf(random.nextInt(3000)));
+		NetworkHandler.packetHandels.add(new PacketHandler(this));
 		this.network = new NetworkHandler(this);
 		
 		this.isRunning = true;
-		this.serverRunning = false;
 	}
 
 	public void run() {

@@ -90,13 +90,4 @@ public class DataReader {
 		}
     	return 0;
     }
-    
-    public void done() {
-    	try {
-        	this.byteInput.close();
-			this.inputStream.close();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-    }
 }

@@ -30,7 +30,7 @@ public class Player extends Entity {
 		}
 	}
 	
-	public void update(){
+	public void onUpdate(){
 		
 		if(motionX > 10)
 			motionX = 10;
@@ -72,8 +72,7 @@ public class Player extends Entity {
 		posY += motionY;
 	}
 	
-	public void renderPlayer(Graphics g) {
-		System.out.println(this.currentPower);
+	public void renderEntity(Graphics g) {
 		if(this.currentPower != null) {
 			System.out.println("ded");
 			this.currentPower.drawPlayerPrePower(g, this);

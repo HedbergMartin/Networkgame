@@ -12,34 +12,23 @@ public class World {
 	
 	public List<Entity> entitysInWorld = new ArrayList<Entity>();
 	public Random random = new Random(Rocket.getRocket().properties.seed);
-	public int worldWidth;
-	public int worldHeight;
 	
 	public boolean updateWorld = false;
 	
 	public boolean isRemote = false;
 
-	public World(int width, int height, boolean remote) {
-		this.worldWidth = width;
-		this.worldHeight = height;
+	public World(boolean remote) {
 		this.isRemote = remote;
 	}
 	
 	public void onWorldUpdate() {
 		if(!this.isRemote) {
-			boolean hasPowerUp = false;
 			for(int i = 0; i < this.entitysInWorld.size(); i++) {
 				this.entitysInWorld.get(i).onUpdate();
-				if(this.entitysInWorld.get(i) instanceof EntityPowerUp){
-					hasPowerUp = true;
-				}
 			}
-
-			if(!hasPowerUp) {
-				//if(this.random.nextInt(600) == 32) {
-					this.spawnEntity(new EntityPowerUp(PowerUp.shield, random.nextInt(this.worldWidth-20), random.nextInt(this.worldHeight-20), 1));
-				//}
-			}
+		}else {
+			Rocket.getRocket().player.onUpdate();
+			Rocket.getRocket().network.manager.sendPlayerUpdate();
 		}
 	}
 	

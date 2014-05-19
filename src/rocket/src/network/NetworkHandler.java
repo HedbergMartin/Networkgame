@@ -13,23 +13,27 @@ import rocket.lib.References;
 import rocket.main.Rocket;
 import rocket.src.DataWriter;
 import rocket.src.Player;
+import rocket.src.World;
 
 public class NetworkHandler implements Runnable {
 
 	Socket socket;
 	DataOutputStream out;
 	DataInputStream in;
-	public static ArrayList<Player> connectedPlayers = new ArrayList<Player>();
+	public static ArrayList<String> connectedPlayers = new ArrayList<String>();
 	public static List<IPacketHandler> packetHandels = new ArrayList<IPacketHandler>();
     public LinkedBlockingQueue<Packet> dataQue;
-	Rocket rocket;
+	public Rocket rocket;
 	public boolean isConnected = false;
-	Thread thread;
+	private Thread thread;
+	public PacketManager manager;
 	
 	public NetworkHandler(Rocket rocket) {
 		this.rocket = rocket;
+		this.manager = new PacketManager(this);
 	}
-	
+
+	/** Connect to the server **/
 	public void connect() throws UnknownHostException, IOException{
 		this.socket = new Socket(Rocket.getRocket().properties.IP,Rocket.getRocket().properties.port);
 		this.in = new DataInputStream(this.socket.getInputStream());
@@ -40,6 +44,7 @@ public class NetworkHandler implements Runnable {
 		thread = new Thread(this);
 		thread.setDaemon(true);
 		thread.start();
+		this.manager.sendJoindata(rocket.player.name);
 	}
 	
 	public void dataQueHandling() {
@@ -64,7 +69,6 @@ public class NetworkHandler implements Runnable {
 
 	@Override
 	public void run() {
-		this.sendPlayerUpdate();
 		while(isConnected){
 			String channel = null;
 			byte[] data = null;
@@ -84,39 +88,11 @@ public class NetworkHandler implements Runnable {
 	
 	public static int isPlayerAdded(String player){
 		for(int i = 0; i < connectedPlayers.size(); i++){
-			if(connectedPlayers.get(i).name.equals(player)){
+			if(connectedPlayers.get(i).equals(player)){
 				return i;
 			}
 		}
 		return -1;
-	}
-	
-	public void update(){
-		if(Rocket.getRocket().player.requierUpdate){
-			this.sendPlayerUpdate();
-		}
-	}
-	
-	public void sendPlayerUpdate(){
-		DataWriter data = new DataWriter();
-		data.addString(Rocket.getRocket().player.name);
-		data.addInt(Rocket.getRocket().player.posX);
-		data.addInt(Rocket.getRocket().player.posY);
-		data.addInt(Rocket.getRocket().player.health);
-		this.sendPacket(data.finalizePacket(References.CHANNEL_PLAYER_UPDATE));
-	}
-	
-	public void disconnect(){
-		DataWriter data = new DataWriter();
-		data.addString(Rocket.getRocket().player.name);
-		this.sendPacket(data.finalizePacket(References.CHANNEL_PLAYER_DC));
-		this.close();
-	}
-	
-	public void sendStartGame(){
-		DataWriter data = new DataWriter();
-		data.addInt(References.GUI_INGAME);
-		this.sendPacket(data.finalizePacket(References.CHANNEL_OPENGUI));
 	}
 	
 	public void sendPacket(Packet packet) {

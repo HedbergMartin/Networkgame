@@ -8,7 +8,7 @@ public class PlayerClient extends Player {
 	}
 
 	@Override
-	public void update() {
-		super.update();
+	public void onUpdate() {
+		super.onUpdate();
 	}
 }
